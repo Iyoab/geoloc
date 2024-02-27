@@ -1,10 +1,22 @@
 import requests
+from nrf24l01 import RF24
 
-API_KEY = 'AIzaSyAbd0ekZXpYV87FiN_taSW7gIV4zRzpN0k' #need an api key here
+API_KEY = '' # Google Maps API key
 
-def get_address_from_user():
-    address = input("Enter the address: ")
-    return address
+# Set up NRF24L01 module
+radio = RF24.RF24(RF24.RPI_V2_GPIO_P1_22, RF24.RPI_V2_GPIO_P1_24, RF24.BCM2835_SPI_SPEED_8MHZ)
+pipes = [0xABCDABCD71, 0x544d52687C]
+
+def setup_radio():
+    radio.begin()
+    radio.setRetries(15,15)
+    radio.openWritingPipe(pipes[1])
+    radio.stopListening()
+
+def send_coordinates_to_drone(lat, lon):
+    data = f"{lat},{lon}"
+    radio.write(data.encode())
+    print("Coordinates sent to drone:", data)
 
 def get_lat_lon(address):
     params = {
@@ -22,11 +34,13 @@ def get_lat_lon(address):
         return None, None
 
 def main():
-    address = get_address_from_user()
+    address = input("Enter the address: ")
     lat, lon = get_lat_lon(address)
     if lat is not None and lon is not None:
         print("Latitude:", lat)
         print("Longitude:", lon)
+        setup_radio()
+        send_coordinates_to_drone(lat, lon)
     else:
         print("Error: Unable to retrieve coordinates for the provided address.")
 
